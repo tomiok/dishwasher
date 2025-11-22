@@ -8,6 +8,7 @@ type Washer interface {
 }
 
 type Vector []float32
+type Vector64 []float64
 
 type Metadata struct {
 	Values map[string]any
