@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/binary"
 	"io"
 	"log"
 	"net"
@@ -56,22 +57,41 @@ LOOP:
 			break
 		}
 		msgFormat := format[0]
-		switch msgFormat {
-		case MsgPing:
-			if _, err = conn.Write([]byte("PONG")); err != nil {
-				_ = s.Close()
-				break LOOP
-			}
-		case MsgJoin:
-			log.Printf("JOIN \n")
-		case MsgMembers:
-			log.Printf("members")
-		default:
-			log.Print("unknown header\n")
+		msgLenBuf := make([]byte, 4)
+		_, err = io.ReadFull(conn, msgLenBuf)
+		msgLen := binary.LittleEndian.Uint32(msgLenBuf)
+
+		messageBuf := make([]byte, msgLen)
+		if _, err = io.ReadFull(conn, messageBuf); err != nil {
+			_ = s.Close()
+			break LOOP
+		}
+
+		if err = s.handleMessage(conn, msgFormat); err != nil {
 			_ = s.Close()
 			break LOOP
 		}
 	}
+}
+
+func (s Server) handleMessage(conn net.Conn, msgFormat byte) error {
+	switch msgFormat {
+	case MsgPing:
+		if _, err := conn.Write([]byte("PONG")); err != nil {
+			return err
+		}
+	case MsgJoin:
+		log.Printf("JOIN \n")
+	case MsgMembers:
+		log.Printf("members")
+	default:
+		log.Print("unknown header\n")
+	}
+	return nil
+}
+
+func handleJoin() {
+
 }
 
 func (s Server) Close() error {
