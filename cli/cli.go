@@ -1,5 +1,10 @@
 package cli
 
 const (
-	CMDPing = "ping"
+	CMDPing    = "ping"
+	CMDJoin    = "join"
+	CMDMembers = "join"
+
+	CMDSet = "set"
+	CMDGet = "set"
 )

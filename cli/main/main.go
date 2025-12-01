@@ -32,10 +32,13 @@ func main() {
 	switch profile {
 	case profileServer:
 	case profileClient:
-		_ = runREPL(*addr)
+		err := runREPL(*addr)
+		if err != nil {
+			fmt.Printf("error exiting the client: %v\n", err)
+		}
 	}
 
-	serv := server.New(*addr)
+	serv := server.New(*addr, *seed)
 
 	if *seed {
 		log.Fatal(serv.Start())
