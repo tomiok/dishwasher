@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"github.com/tomiok/dishwasher/internal/server"
 	"log"
@@ -25,32 +24,29 @@ func main() {
 }
 
 func run() {
-	args := parseServerArgs()
-
-	if err := checkRunType(args.runType); err != nil {
-		panic(err)
-	}
+	args := checkRunType()
 
 	serv := server.New(args.addr, args.seed)
 	log.Fatal(serv.Start())
 }
 
-func checkRunType(t string) error {
-	t = strings.ToLower(t)
-	if t != typeSerer {
-		return errors.New("wrong type")
-	}
-
-	return nil
-}
-
-func parseServerArgs() Args {
+func checkRunType() Args {
 	if len(os.Args) < 2 {
 		log.Printf("should put at least 1 arg for running the Dishwaser server")
 		os.Exit(1)
 	}
-
 	runType := os.Args[1]
+
+	runType = strings.ToLower(runType)
+	if runType == typeSerer {
+		return parseServerArgs()
+	}
+
+	panic("run with a proper run type [server]")
+}
+
+func parseServerArgs() Args {
+
 	serverCmd := flag.NewFlagSet("server", flag.ExitOnError)
 	addr := serverCmd.String("addr", ":7000", "listen address")
 	seed := serverCmd.Bool("seed", false, "run as seed")
@@ -61,9 +57,8 @@ func parseServerArgs() Args {
 	}
 
 	return Args{
-		runType: runType,
-		addr:    *addr,
-		join:    *join,
-		seed:    *seed,
+		addr: *addr,
+		join: *join,
+		seed: *seed,
 	}
 }
