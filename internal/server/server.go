@@ -10,6 +10,7 @@ import (
 
 const (
 	MsgPing byte = iota + 1
+	MsgPong
 	MsgJoin
 	MsgMembers
 )
@@ -77,7 +78,7 @@ LOOP:
 func (s Server) handleMessage(conn net.Conn, msgFormat byte) error {
 	switch msgFormat {
 	case MsgPing:
-		if _, err := conn.Write([]byte("PONG")); err != nil {
+		if _, err := conn.Write([]byte{MsgPong, 0, 0, 0, 0}); err != nil {
 			return err
 		}
 	case MsgJoin:
