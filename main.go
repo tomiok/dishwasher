@@ -27,6 +27,13 @@ func run() {
 	args := checkRunType()
 
 	serv := server.New(args.addr, args.seed)
+	if args.join != "" {
+		if err := serv.JoinSeedNode(args.join); err != nil {
+			log.Printf("cannot join seed %v", err)
+		}
+
+	}
+
 	log.Fatal(serv.Start())
 }
 
@@ -46,7 +53,6 @@ func checkRunType() Args {
 }
 
 func parseServerArgs() Args {
-
 	serverCmd := flag.NewFlagSet("server", flag.ExitOnError)
 	addr := serverCmd.String("addr", ":7000", "listen address")
 	seed := serverCmd.Bool("seed", false, "run as seed")

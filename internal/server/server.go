@@ -17,9 +17,11 @@ const (
 )
 
 type Server struct {
+	SeedID  string
+	nodeID  string
 	port    string
 	conn    net.Conn
-	members map[string]struct{}
+	members map[string]string // nodeID - address
 	mu      sync.RWMutex
 }
 
@@ -28,12 +30,13 @@ func New(port string, seed bool) Server {
 		port = ":" + port
 	}
 
-	members := make(map[string]struct{})
+	members := make(map[string]string)
 	if seed {
-		members[generateID("master")] = struct{}{}
+		members[generateID("master")] = port
 	}
 
 	return Server{
+		SeedID:  generateID("server"),
 		port:    port,
 		members: members,
 		mu:      sync.RWMutex{},
@@ -80,21 +83,21 @@ LOOP:
 			break LOOP
 		}
 
-		if err = s.handleMessage(conn, msgFormat, msgFormat); err != nil {
+		if err = s.handleMessage(conn, msgFormat, messageBuf); err != nil {
 			_ = s.Close()
 			break LOOP
 		}
 	}
 }
 
-func (s *Server) handleMessage(conn net.Conn, msgFormat, msg byte) error {
+func (s *Server) handleMessage(conn net.Conn, msgFormat byte, msg []byte) error {
 	switch msgFormat {
 	case MsgPing:
 		if _, err := conn.Write([]byte{MsgPong, 0, 0, 0, 0}); err != nil {
 			return err
 		}
 	case MsgJoin:
-		s.handleJoin()
+		s.handleJoin(conn, msg)
 	case MsgMembers:
 		log.Printf("members")
 	default:
@@ -103,10 +106,35 @@ func (s *Server) handleMessage(conn net.Conn, msgFormat, msg byte) error {
 	return nil
 }
 
-func (s *Server) handleJoin() {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Server) handleJoin(conn net.Conn, msg []byte) {
+	// per doc, [0]=port [1]=node id
+	msgs := strings.Split(string(msg), ",")
 
+	s.mu.Lock()
+	s.members[msgs[1]] = msgs[0]
+	s.mu.Unlock()
+	if err := s.sendMembers(conn); err != nil {
+		log.Printf("cannot send back members, %v", err)
+	}
+}
+
+func (s *Server) sendMembers(conn net.Conn) error {
+	s.mu.RLock()
+	var members []string
+	for id, port := range s.members {
+		members = append(members, port+","+id)
+	}
+	s.mu.RUnlock()
+
+	payload := []byte(strings.Join(members, ";"))
+
+	buf := make([]byte, 5+len(payload))
+	buf[0] = MsgMembers
+	binary.LittleEndian.PutUint32(buf[1:5], uint32(len(payload)))
+	copy(buf[5:], payload)
+
+	_, err := conn.Write(buf)
+	return err
 }
 
 func (s *Server) Close() error {
