@@ -34,7 +34,7 @@ func run() {
 
 	}
 
-	log.Fatal(serv.Start(args.seed))
+	log.Fatal(serv.Start(args.seed, serv.ID))
 }
 
 func checkRunType() Args {

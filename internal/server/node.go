@@ -16,10 +16,8 @@ func (s *Server) JoinSeedNode(addr string) error {
 	}
 	defer conn.Close()
 
-	nodeID := generateID("node")
-	s.nodeID = nodeID
 	port := s.port
-	payload := []byte(fmt.Sprintf("%s,%s", port, nodeID))
+	payload := []byte(fmt.Sprintf("%s,%s", port, s.ID))
 
 	buf := make([]byte, 5+len(payload))
 	buf[0] = MsgJoin

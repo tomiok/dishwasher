@@ -3,8 +3,10 @@ package cli
 const (
 	CMDPing    = "ping"
 	CMDJoin    = "join"
-	CMDMembers = "join"
+	CMDMembers = "members"
 
 	CMDSet = "set"
-	CMDGet = "set"
+	CMDGet = "get"
+
+	PromptDSWH = "DSWH>"
 )

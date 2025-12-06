@@ -18,8 +18,7 @@ const (
 )
 
 type Server struct {
-	SeedID  string
-	nodeID  string
+	ID      string
 	port    string
 	conn    net.Conn
 	members map[string]string // nodeID - address
@@ -32,12 +31,13 @@ func New(port string, seed bool) Server {
 	}
 
 	members := make(map[string]string)
+	id := generateID(seed)
 	if seed {
-		members[generateID("master")] = port
+		members[id] = port
 	}
 
 	return Server{
-		SeedID:  generateID("server"),
+		ID:      id,
 		port:    port,
 		members: members,
 		mu:      sync.RWMutex{},
@@ -107,7 +107,9 @@ func (s *Server) handleMessage(conn net.Conn, msgFormat byte, msg []byte) error 
 	case MsgJoin:
 		s.handleJoin(conn, msg)
 	case MsgMembers:
-		log.Printf("members")
+		if err := s.sendMembers(conn); err != nil {
+			return err
+		}
 	default:
 		log.Print("unknown header\n")
 	}

@@ -2,12 +2,12 @@ package main
 
 import (
 	"bufio"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"github.com/tomiok/dishwasher/cli"
 	"github.com/tomiok/dishwasher/internal/server"
 	"io"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -25,8 +25,6 @@ func main() {
 	}
 
 	addr := flag.String("addr", ":7000", "")
-	join := flag.String("join", "", "seed node to join")
-	seed := flag.Bool("seed", false, "run as seed node")
 	flag.Parse()
 
 	switch profile {
@@ -37,14 +35,6 @@ func main() {
 			fmt.Printf("error exiting the client: %v\n", err)
 		}
 	}
-
-	serv := server.New(*addr, *seed)
-
-	if *seed {
-		log.Fatal(serv.Start())
-	}
-
-	log.Fatalf("do not have join feature yet, %s", *join)
 }
 
 func runREPL(addr string) error {
@@ -60,7 +50,7 @@ LOOP:
 		line := scanner.Text()
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
-			fmt.Print("DHWS>")
+			prompt(cli.PromptDSWH, "")
 			continue
 		}
 
@@ -80,12 +70,53 @@ LOOP:
 			}
 
 			if res[0] == server.MsgPong {
-				fmt.Print("DSWH>PONG\n")
+				prompt("", "PONG")
 			}
 
-			fmt.Print("DSWH>")
+			prompt(cli.PromptDSWH, "")
+		case cli.CMDMembers:
+			_, err = conn.Write([]byte{server.MsgMembers, 0, 0, 0, 0})
+			if err != nil {
+				break
+			}
+
+			header := make([]byte, 5)
+			if _, err = io.ReadFull(conn, header); err != nil {
+				return err
+			}
+
+			if header[0] != server.MsgMembers {
+				return fmt.Errorf("expected MsgMembers, got %d", header[0])
+			}
+
+			length := binary.LittleEndian.Uint32(header[1:5])
+
+			if length > 0 {
+				respPayload := make([]byte, length)
+				if _, err = io.ReadFull(conn, respPayload); err != nil {
+					return err
+				}
+
+				prompt("", string(respPayload))
+			}
+
+			prompt(cli.PromptDSWH, "")
 		}
 	}
 
 	return conn.Close()
+}
+
+func prompt(ps1, value string) {
+	if ps1 == "" {
+		fmt.Print(value + "\n")
+		return
+	}
+
+	if value == "" {
+		fmt.Print(fmt.Sprintf("%s", ps1))
+		return
+	}
+
+	fmt.Print(fmt.Sprintf("%s%s\n", ps1, value))
 }
