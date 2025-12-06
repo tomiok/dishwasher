@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -43,13 +44,20 @@ func New(port string, seed bool) Server {
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(seed bool, id string) error {
 	l, err := net.Listen("tcp4", s.port)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("started!: \n members: %v", s.members)
+	logFmt := "started dishwasher as a %s with id %s"
+	var typeOfServer = "node"
+	if seed {
+		typeOfServer = "seed"
+	}
+
+	log.Print(fmt.Sprintf(logFmt, typeOfServer, id) + "\n")
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
