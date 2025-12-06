@@ -101,6 +101,10 @@ LOOP:
 			}
 
 			prompt(cli.PromptDSWH, "")
+		default:
+			prompt("", "[ERROR] - wrong command")
+			prompt(cli.PromptDSWH, "")
+			continue
 		}
 	}
 
